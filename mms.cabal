@@ -37,12 +37,13 @@ test-suite mms-test
   main-is:             Spec.hs
   build-depends:       base
                      , mms
-                     , bytestring
                      , hspec
                      , QuickCheck
+                     , bytestring
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
   default-extensions:  TypeFamilies
+                     , GeneralizedNewtypeDeriving
 
 source-repository head
   type:     git

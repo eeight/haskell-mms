@@ -1,12 +1,19 @@
 module Foreign.Mms
-    ( Mms(..)
+    ( ToMms(..)
+    , FromMms(..)
     , OffsetPopulatingPut
     , OffsetConsumingPut
     , Get
     , putStorable
     , getStorable
-    , readMms
+    , Storage(..)
     , writeMms
+    , getPointer
+    , writeOffset
+    , loadOffset
+    , saveOffset
+--    , populateOffsets
+--    , consumeOffsets
     ) where
 
 import Foreign.Mms.Builder(Builder, storable, writtenSoFar, toLazyByteString)
@@ -14,7 +21,7 @@ import Foreign.Mms.Builder(Builder, storable, writtenSoFar, toLazyByteString)
 import Control.Arrow(first, second)
 import Control.Monad.State.Strict
 import Data.Monoid((<>))
-import Data.Sequence(Seq, (|>), viewl, ViewL(..))
+import Data.Sequence(Seq, (|>), viewl, ViewL(..), null)
 import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
 import Foreign.Ptr(Ptr, plusPtr, castPtr)
 import Foreign.Storable(Storable(..))
@@ -31,24 +38,31 @@ type Offsets = Seq Int64
 newtype Put a = Put { runPut :: State (Offsets, Builder) a }
     deriving (Functor, Applicative, Monad, MonadState (Offsets, Builder))
 
-newtype OffsetPopulatingPut a = Populate
-    { runPopulate :: Put a
-    } deriving (Functor, Applicative, Monad)
+--withOffsets :: Offsets -> Put a -> Put (a, Offsets)
+--withOffsets offsets action = do
+--    (savedOffsets, builder) <- get
+--    let (x, (offsets', builder')) = runState action (offsets, builder)
+--    put (savedOffsets, builder')
+--    return (x, offsets')
 
-newtype OffsetConsumingPut a = Consume
-    { runConsume :: Put a
-    } deriving (Functor, Applicative, Monad)
+type OffsetPopulatingPut = Put
+type OffsetConsumingPut = Put
 
 putStorable :: (Storable a) => a -> OffsetConsumingPut ()
-putStorable = Consume . modify' . second . (flip mappend) . storable
+putStorable = modify' . second . (flip mappend) . storable
 
 saveOffset :: OffsetPopulatingPut ()
-saveOffset = Populate $ (modify' . first . flip (|>)) =<< (gets (writtenSoFar . snd))
+saveOffset = (modify' . first . flip (|>)) =<< (gets (writtenSoFar . snd))
 
 loadOffset :: OffsetConsumingPut Int64
-loadOffset = Consume $ gets (viewl . fst) >>= \case
+loadOffset = gets (viewl . fst) >>= \case
     EmptyL -> error "Trying to consume more offsets than there is."
     offset :< rest -> modify' (first $ const rest) >> return offset
+
+writeOffset :: Int64 -> OffsetConsumingPut ()
+writeOffset offset = do
+     offsetNow <- gets (writtenSoFar . snd)
+     putStorable (offset - offsetNow)
 
 -- Unrolled ContT r (StateT (Ptr Word8) IO) a
 newtype Get a = Get
@@ -69,24 +83,46 @@ getStorable = Get $ \k p -> do
     x <- peek (castPtr p)
     k x (p `plusPtr` sizeOf x)
 
-class Mms m where
-    type Freeze m :: *
-    writeFields :: m -> OffsetConsumingPut ()
-    writeData :: m -> OffsetConsumingPut ()
-    readFields :: Get m
+getPointer :: Get (Ptr a)
+getPointer = do
+    p <- Get $ \k p -> k p p
+    offset <- getStorable :: Get Int64
+    return $ p `plusPtr` (fromIntegral offset)
 
-instance Mms Double where
+class ToMms a where
+    type Freeze a :: *
+    writeData :: a -> OffsetPopulatingPut ()
+    writeFields :: a -> OffsetConsumingPut ()
+
+class FromMms a where
+    mmsSize :: a -> Int
+    readFields :: Get a
+
+instance ToMms Double where
     type Freeze Double = Double
-    writeFields = putStorable
     writeData _ = return ()
+    writeFields = putStorable
+
+instance FromMms Double where
+    mmsSize x = sizeOf x
     readFields = getStorable
 
-writeMms :: Mms a => a -> L.ByteString
+writeMms :: ToMms a => a -> L.ByteString
 writeMms x = let
-    (_, builder) = execState (runPut $ runConsume $ writeFields x) mempty
-    in toLazyByteString builder
+    (offsets, builder) = execState (runPut $ writeData x >> writeFields x) mempty
+    in if Data.Sequence.null offsets
+        then toLazyByteString builder
+        else error "Some offsets were not consumed"
 
--- Does not do any bounds checking
-readMms :: Mms a => B.ByteString -> a
-readMms (B.PS p o _) = unsafePerformIO $
-    runGet readFields (\x _ -> return x) (unsafeForeignPtrToPtr p)
+class Storage a where
+    readMms :: FromMms b => a -> b
+
+instance Storage (Ptr a) where
+    readMms = unsafePerformIO . runGet readFields (\x _ -> return x) . castPtr
+
+instance Storage B.ByteString where
+    readMms (B.PS p o s) = let
+        headSize = mmsSize result
+        beginPtr = unsafeForeignPtrToPtr p
+        result = readMms (beginPtr `plusPtr` (s - headSize))
+        in result
