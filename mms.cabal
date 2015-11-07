@@ -16,8 +16,11 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Foreign.Mms
+  other-modules:       Foreign.Mms.Builder
   build-depends:       base >= 4.7 && < 5
                      , bytestring
+-- Just so hdevtools are happy
+                     , hspec
   default-language:    Haskell2010
   default-extensions:  TypeFamilies
 
