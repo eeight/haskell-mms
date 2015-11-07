@@ -12,8 +12,6 @@ module Foreign.Mms
     , writeOffset
     , loadOffset
     , saveOffset
---    , populateOffsets
---    , consumeOffsets
     ) where
 
 import Foreign.Mms.Builder(Builder, storable, writtenSoFar, toLazyByteString)
@@ -37,13 +35,6 @@ type Offsets = Seq Int64
 
 newtype Put a = Put { runPut :: State (Offsets, Builder) a }
     deriving (Functor, Applicative, Monad, MonadState (Offsets, Builder))
-
---withOffsets :: Offsets -> Put a -> Put (a, Offsets)
---withOffsets offsets action = do
---    (savedOffsets, builder) <- get
---    let (x, (offsets', builder')) = runState action (offsets, builder)
---    put (savedOffsets, builder')
---    return (x, offsets')
 
 type OffsetPopulatingPut = Put
 type OffsetConsumingPut = Put
