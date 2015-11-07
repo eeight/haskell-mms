@@ -40,10 +40,10 @@ type OffsetPopulatingPut = Put
 type OffsetConsumingPut = Put
 
 putStorable :: (Storable a) => a -> OffsetConsumingPut ()
-putStorable = modify' . second . (flip mappend) . storable
+putStorable = modify' . second . flip mappend . storable
 
 saveOffset :: OffsetPopulatingPut ()
-saveOffset = (modify' . first . flip (|>)) =<< (gets (writtenSoFar . snd))
+saveOffset = modify' . first . flip (|>) =<< gets (writtenSoFar . snd)
 
 loadOffset :: OffsetConsumingPut Int64
 loadOffset = gets (viewl . fst) >>= \case
@@ -70,7 +70,7 @@ getPointer :: Get (Ptr a)
 getPointer = do
     p <- get
     offset <- getStorable :: Get Int64
-    return $ p `plusPtr` (fromIntegral offset)
+    return $ p `plusPtr` fromIntegral offset
 
 class ToMms a where
     type Freeze a :: *

@@ -3,11 +3,10 @@ import Foreign.Mms
 import Test.Hspec
 import Test.QuickCheck
 
-import Control.Monad(liftM2)
+import Control.Monad
 import Foreign.Ptr(Ptr, plusPtr)
 import Foreign.Storable(Storable)
 import GHC.Int(Int64)
-import Control.Monad
 
 import Debug.Trace
 
