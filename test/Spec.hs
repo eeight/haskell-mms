@@ -14,6 +14,7 @@ data Point = Point Double Double deriving (Eq, Show)
 instance Mms Point where
     type Freeze Point = Point
     writeFields (Point x y) = mapM_ writeFields [x, y]
+    writeData _ = return ()
     readFields = liftM2 Point readFields readFields
 
 instance Arbitrary Point where

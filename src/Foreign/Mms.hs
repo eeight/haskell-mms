@@ -1,6 +1,7 @@
 module Foreign.Mms
     ( Mms(..)
-    , Put
+    , OffsetPopulatingPut
+    , OffsetConsumingPut
     , Get
     , putStorable
     , getStorable
@@ -8,11 +9,16 @@ module Foreign.Mms
     , writeMms
     ) where
 
+import Foreign.Mms.Builder(Builder, storable, writtenSoFar, toLazyByteString)
+
+import Control.Arrow(first, second)
+import Control.Monad.State.Strict
 import Data.Monoid((<>))
-import Foreign.Mms.Builder(Builder, storable, toLazyByteString)
-import Foreign.Ptr(Ptr, plusPtr, castPtr)
+import Data.Sequence(Seq, (|>), viewl, ViewL(..))
 import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
+import Foreign.Ptr(Ptr, plusPtr, castPtr)
 import Foreign.Storable(Storable(..))
+import GHC.Int(Int64)
 import GHC.Word(Word8)
 import System.IO.Unsafe(unsafePerformIO)
 
@@ -20,21 +26,29 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Lazy as L
 
-data PutM a = PutM a Builder
-type Put = PutM ()
+type Offsets = Seq Int64
 
-putStorable :: (Storable a) => a -> Put
-putStorable = PutM () . storable
+newtype Put a = Put { runPut :: State (Offsets, Builder) a }
+    deriving (Functor, Applicative, Monad, MonadState (Offsets, Builder))
 
-instance Functor PutM where
-    fmap f (PutM x b) = PutM (f x) b
+newtype OffsetPopulatingPut a = Populate
+    { runPopulate :: Put a
+    } deriving (Functor, Applicative, Monad)
 
-instance Applicative PutM where
-    pure x = PutM x mempty
-    (PutM f b1) <*> (PutM x b2) = PutM (f x) (b1 <> b2)
+newtype OffsetConsumingPut a = Consume
+    { runConsume :: Put a
+    } deriving (Functor, Applicative, Monad)
 
-instance Monad PutM where
-    (PutM x b1) >>= f = case f x of PutM y b2 -> PutM y (b1 <> b2)
+putStorable :: (Storable a) => a -> OffsetConsumingPut ()
+putStorable = Consume . modify' . second . (flip mappend) . storable
+
+saveOffset :: OffsetPopulatingPut ()
+saveOffset = Populate $ (modify' . first . flip (|>)) =<< (gets (writtenSoFar . snd))
+
+loadOffset :: OffsetConsumingPut Int64
+loadOffset = Consume $ gets (viewl . fst) >>= \case
+    EmptyL -> error "Trying to consume more offsets than there is."
+    offset :< rest -> modify' (first $ const rest) >> return offset
 
 -- Unrolled ContT r (StateT (Ptr Word8) IO) a
 newtype Get a = Get
@@ -45,7 +59,7 @@ instance Functor Get where
 
 instance Applicative Get where
     pure x = Get ($ x)
-    (Get f) <*> (Get g) = Get $ \k -> f (\t -> g (k .t ))
+    (Get f) <*> (Get g) = Get $ \k -> f (\t -> g (k . t))
 
 instance Monad Get where
     (Get f) >>= g = Get $ \k -> f (\x -> runGet (g x) k)
@@ -57,16 +71,20 @@ getStorable = Get $ \k p -> do
 
 class Mms m where
     type Freeze m :: *
-    writeFields :: m -> Put
+    writeFields :: m -> OffsetConsumingPut ()
+    writeData :: m -> OffsetConsumingPut ()
     readFields :: Get m
 
 instance Mms Double where
     type Freeze Double = Double
     writeFields = putStorable
+    writeData _ = return ()
     readFields = getStorable
 
 writeMms :: Mms a => a -> L.ByteString
-writeMms x = case writeFields x of (PutM () b) -> toLazyByteString b
+writeMms x = let
+    (_, builder) = execState (runPut $ runConsume $ writeFields x) mempty
+    in toLazyByteString builder
 
 -- Does not do any bounds checking
 readMms :: Mms a => B.ByteString -> a

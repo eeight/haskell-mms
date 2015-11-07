@@ -19,12 +19,17 @@ library
   other-modules:       Foreign.Mms.Builder
   build-depends:       base >= 4.7 && < 5
                      , bytestring
+                     , containers
+                     , mtl
 -- Just so hdevtools are happy
                      , hspec
                      , QuickCheck
   default-language:    Haskell2010
   default-extensions:  TypeFamilies
                      , Rank2Types
+                     , DeriveFunctor
+                     , LambdaCase
+                     , GeneralizedNewtypeDeriving
 
 test-suite mms-test
   type:                exitcode-stdio-1.0

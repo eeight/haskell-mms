@@ -1,13 +1,16 @@
 module Foreign.Mms.Builder
     ( Builder
     , storable
+    , writtenSoFar
     , toLazyByteString
     ) where
 
-import Foreign.Ptr(plusPtr)
+import Data.Monoid((<>))
 import Foreign.ForeignPtr(ForeignPtr, withForeignPtr)
+import Foreign.Ptr(plusPtr)
 import Foreign.Storable(Storable(..))
 import GHC.ForeignPtr(mallocPlainForeignPtrBytes)
+import GHC.Int(Int64)
 import GHC.Word(Word8)
 import System.IO.Unsafe(unsafePerformIO)
 
@@ -20,15 +23,16 @@ data Buffer = Buffer
     Int -- used
     Int -- size
 
-newtype Builder = Builder
-    { runBuilder :: (Buffer -> IO L.ByteString) -> Buffer -> IO L.ByteString
+data Builder = Builder
+    { written :: Int64
+    , runBuilder :: (Buffer -> IO L.ByteString) -> Buffer -> IO L.ByteString
     }
 
 empty :: Builder
-empty = Builder ($)
+empty = Builder 0 ($)
 
 append :: Builder -> Builder -> Builder
-append (Builder f) (Builder g) = Builder $ f . g
+append (Builder n1 f) (Builder n2 g) = Builder (n1 + n2) (f . g)
 
 instance Monoid Builder where
     mempty = empty
@@ -46,27 +50,30 @@ newBuffer s = do
     return $ Buffer p 0 s
 
 ensureBuffer :: Int -> Builder
-ensureBuffer n = Builder $ \k b@(Buffer p u s) ->
+ensureBuffer n = Builder 0 $ \k b@(Buffer p u s) ->
     if s - u >= n then k b else do
         b <- newBuffer (max n defaultSize)
         L.Chunk (B.PS p 0 u) <$> k b
 
 flush :: Builder
-flush = Builder $ \k (Buffer p u s) ->
+flush = Builder 0 $ \k (Buffer p u s) ->
     L.Chunk (B.PS p 0 u) <$> k (Buffer p s s)
 
-withBuffer :: (Buffer -> IO Buffer) -> Builder
-withBuffer f = Builder $ \k b -> k =<< f b
+writeToBuffer :: Int -> (Buffer -> IO Buffer) -> Builder
+writeToBuffer n f = ensureBuffer n <> builder where
+    builder = (Builder (fromIntegral n) $ \k b -> k =<< f b)
 
 toLazyByteString :: Builder -> L.ByteString
 toLazyByteString builder = unsafePerformIO $ do
     b <- newBuffer defaultSize
-    runBuilder (builder `append` flush) (const $ return L.empty) b
+    runBuilder (builder <> flush) (const $ return L.empty) b
+
+writtenSoFar :: Builder -> Int64
+writtenSoFar = written
 
 storable :: (Storable a) => a -> Builder
-storable x = ensureBuffer size `append` write where
+storable x = let
     size = sizeOf x
-    write = withBuffer $ \(Buffer p u s) -> do
+    in writeToBuffer size $ \(Buffer p u s) -> do
         withForeignPtr p $ \p -> poke (p `plusPtr` u) x
         return $ Buffer p (u + size) s
-
