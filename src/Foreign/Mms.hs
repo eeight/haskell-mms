@@ -55,7 +55,6 @@ writeOffset offset = do
      offsetNow <- gets (writtenSoFar . snd)
      putStorable (offset - offsetNow)
 
--- Unrolled ContT r (StateT (Ptr Word8) IO) a
 newtype Get a = Get { runGet :: StateT (Ptr Word8) IO a }
     deriving (Functor, Applicative, Monad, MonadState (Ptr Word8), MonadIO)
 
