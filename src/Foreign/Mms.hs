@@ -56,27 +56,19 @@ writeOffset offset = do
      putStorable (offset - offsetNow)
 
 -- Unrolled ContT r (StateT (Ptr Word8) IO) a
-newtype Get a = Get
-    { runGet :: forall r . (a -> Ptr Word8 -> IO r) -> Ptr Word8 -> IO r }
-
-instance Functor Get where
-    fmap f (Get g) = Get $ \k -> g (k . f)
-
-instance Applicative Get where
-    pure x = Get ($ x)
-    (Get f) <*> (Get g) = Get $ \k -> f (\t -> g (k . t))
-
-instance Monad Get where
-    (Get f) >>= g = Get $ \k -> f (\x -> runGet (g x) k)
+newtype Get a = Get { runGet :: StateT (Ptr Word8) IO a }
+    deriving (Functor, Applicative, Monad, MonadState (Ptr Word8), MonadIO)
 
 getStorable :: (Storable a) => Get a
-getStorable = Get $ \k p -> do
-    x <- peek (castPtr p)
-    k x (p `plusPtr` sizeOf x)
+getStorable = do
+    ptr <- gets castPtr
+    x <- liftIO $ peek ptr
+    modify' (`plusPtr` sizeOf x)
+    return x
 
 getPointer :: Get (Ptr a)
 getPointer = do
-    p <- Get $ \k p -> k p p
+    p <- get
     offset <- getStorable :: Get Int64
     return $ p `plusPtr` (fromIntegral offset)
 
@@ -95,21 +87,21 @@ instance ToMms Double where
     writeFields = putStorable
 
 instance FromMms Double where
-    mmsSize x = sizeOf x
+    mmsSize = sizeOf
     readFields = getStorable
 
 writeMms :: ToMms a => a -> L.ByteString
-writeMms x = let
-    (offsets, builder) = execState (runPut $ writeData x >> writeFields x) mempty
-    in if Data.Sequence.null offsets
-        then toLazyByteString builder
-        else error "Some offsets were not consumed"
+writeMms x =
+    case execState (runPut $ writeData x >> writeFields x) mempty of
+        (offsets, builder) | Data.Sequence.null offsets ->
+            toLazyByteString builder
+        otherwise -> error "Some offsets were not consumed"
 
 class Storage a where
     readMms :: FromMms b => a -> b
 
 instance Storage (Ptr a) where
-    readMms = unsafePerformIO . runGet readFields (\x _ -> return x) . castPtr
+    readMms = unsafePerformIO . evalStateT (runGet readFields) . castPtr
 
 instance Storage B.ByteString where
     readMms (B.PS p o s) = let
