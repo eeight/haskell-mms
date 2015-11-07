@@ -28,7 +28,7 @@ empty :: Builder
 empty = Builder ($)
 
 append :: Builder -> Builder -> Builder
-append (Builder f) (Builder g) = Builder $ f.g
+append (Builder f) (Builder g) = Builder $ f . g
 
 instance Monoid Builder where
     mempty = empty
