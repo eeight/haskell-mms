@@ -20,7 +20,7 @@ data Buffer = Buffer
     Int -- used
     Int -- size
 
-data Builder = Builder
+newtype Builder = Builder
     { runBuilder :: (Buffer -> IO L.ByteString) -> Buffer -> IO L.ByteString
     }
 
