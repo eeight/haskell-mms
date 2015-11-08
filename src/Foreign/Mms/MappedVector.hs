@@ -3,7 +3,7 @@ module Foreign.Mms.MappedVector(MappedVector) where
 import Control.Monad(liftM2)
 import Data.Foldable(Foldable(..))
 import Foreign.Mms.Class(FromMms(..), Storage(..))
-import Foreign.Mms.Get(getPointer, getStorable)
+import Foreign.Mms.Get(getPointer)
 import Foreign.Mms.GVector(GVector(..))
 import Foreign.Mms.Instances
 import Foreign.Ptr(Ptr, plusPtr)
@@ -14,7 +14,7 @@ data MappedVector a where
 
 instance FromMms a => FromMms (MappedVector a) where
     mmsSize _ = 16
-    readFields = liftM2 MappedVector getPointer getStorable
+    readFields = liftM2 MappedVector getPointer readFields
 
 instance GVector MappedVector a where
     glength (MappedVector _ length) = fromIntegral length

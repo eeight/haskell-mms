@@ -7,7 +7,6 @@ import Test.QuickCheck
 
 import Control.Monad
 import Foreign.Ptr(Ptr, plusPtr)
-import Foreign.Storable(Storable)
 import GHC.Int(Int64)
 import GHC.Generics(Generic)
 import Data.Foldable(Foldable(..))
@@ -16,8 +15,6 @@ import qualified Data.ByteString.Lazy as L
 
 data Point = Point Double Double deriving (Eq, Show)
 
--- Explicitly make Point and instance of Mms instead of making it
--- storable and using default instance.
 instance ToMms Point where
     writeData _ = return ()
     writeFields (Point x y) = mapM_ writeFields [x, y]

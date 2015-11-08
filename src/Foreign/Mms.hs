@@ -4,8 +4,6 @@ module Foreign.Mms
     , FromMms(..)
     , Put
     , Get
-    , putStorable
-    , getStorable
     , Storage(..)
     , writeMms
     ) where

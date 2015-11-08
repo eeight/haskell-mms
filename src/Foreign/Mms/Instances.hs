@@ -8,10 +8,59 @@ import Foreign.Mms.Put(putStorable)
 import Foreign.Ptr(Ptr, plusPtr, castPtr)
 import Foreign.Storable(Storable(..))
 import GHC.Generics(K1(..), M1(..), (:*:)(..), (:+:))
+import GHC.Int(Int8, Int16, Int32, Int64)
 import System.IO.Unsafe(unsafePerformIO)
 
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
+
+instance ToMms Int where
+    writeData _ = return ()
+    writeFields = putStorable
+
+instance FromMms Int where
+    mmsSize = sizeOf
+    readFields = getStorable
+
+instance ToMms Int8 where
+    writeData _ = return ()
+    writeFields = putStorable
+
+instance FromMms Int8 where
+    mmsSize = sizeOf
+    readFields = getStorable
+
+instance ToMms Int16 where
+    writeData _ = return ()
+    writeFields = putStorable
+
+instance FromMms Int16 where
+    mmsSize = sizeOf
+    readFields = getStorable
+
+instance ToMms Int32 where
+    writeData _ = return ()
+    writeFields = putStorable
+
+instance FromMms Int32 where
+    mmsSize = sizeOf
+    readFields = getStorable
+
+instance ToMms Int64 where
+    writeData _ = return ()
+    writeFields = putStorable
+
+instance FromMms Int64 where
+    mmsSize = sizeOf
+    readFields = getStorable
+
+instance ToMms Float where
+    writeData _ = return ()
+    writeFields = putStorable
+
+instance FromMms Float where
+    mmsSize = sizeOf
+    readFields = getStorable
 
 instance ToMms Double where
     writeData _ = return ()

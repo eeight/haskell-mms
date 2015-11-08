@@ -4,7 +4,7 @@ import Foreign.Mms.GVector(GVector(..))
 import Foreign.Mms.MappedVector(MappedVector)
 import Foreign.Mms.Core(Mode(..))
 import Foreign.Mms.Class(ToMms(..) , FromMms(..))
-import Foreign.Mms.Put(saveOffset, loadOffset , writeOffset , putStorable)
+import Foreign.Mms.Put(saveOffset, loadOffset , writeOffset)
 import GHC.Int(Int64)
 
 data List (m :: Mode) a where
@@ -31,4 +31,4 @@ instance ToMms a => ToMms (List 'Allocated a) where
         mapM_ writeData xs >> saveOffset >> mapM_ writeFields xs
     writeFields (AllocatedList xs) = do
         writeOffset =<< loadOffset
-        putStorable $ (fromIntegral (length xs) :: Int64)
+        writeFields $ (fromIntegral (length xs) :: Int64)
