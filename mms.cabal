@@ -16,7 +16,11 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Foreign.Mms
+                     , Foreign.Mms.GVector
+                     , Foreign.Mms.List
   other-modules:       Foreign.Mms.Builder
+                     , Foreign.Mms.Core
+                     , Foreign.Mms.MappedVector
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , containers
@@ -29,6 +33,9 @@ library
                      , DeriveFunctor
                      , LambdaCase
                      , GeneralizedNewtypeDeriving
+                     , MultiParamTypeClasses
+                     , StandaloneDeriving
+                     , DeriveFoldable
 -- Just so hdevtools are happy
                      , KindSignatures
                      , RecordWildCards

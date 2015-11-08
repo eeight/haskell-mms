@@ -1,4 +1,6 @@
 import Foreign.Mms
+import Foreign.Mms.List
+import Foreign.Mms.GVector
 
 import Test.Hspec
 import Test.QuickCheck
@@ -7,8 +9,7 @@ import Control.Monad
 import Foreign.Ptr(Ptr, plusPtr)
 import Foreign.Storable(Storable)
 import GHC.Int(Int64)
-
-import Debug.Trace
+import Data.Foldable(Foldable(..))
 
 import qualified Data.ByteString.Lazy as L
 
@@ -24,41 +25,11 @@ instance FromMms Point where
     mmsSize _ = 16
     readFields = liftM2 Point readFields readFields
 
-data Mode = Allocated | Mapped
-
-data Vector (m :: Mode) a where
-    AllocatedVector :: { unAllocated :: [a] } -> Vector 'Allocated a
-    MappedVector :: Ptr a -> Int64 -> Vector 'Mapped a
-
-toList :: FromMms a => Vector 'Mapped a -> [a]
-toList (MappedVector p length) = let
-    xs = take (fromIntegral length) $ map readMms $
-        iterate (`plusPtr` elementSize) p
-    elementSize = mmsSize $ head xs
-    in xs
-
-instance (Show a, FromMms a) => Show (Vector m a) where
-    show (AllocatedVector xs) = show xs
-    show v@MappedVector{} = show . toList $ v
-
-instance Foldable (Vector 'Allocated) where
-    foldr f z (AllocatedVector xs) = foldr f z xs
-
-instance ToMms a => ToMms (Vector 'Allocated a) where
-    writeData xs = mapM_ writeData xs >> saveOffset >> mapM_ writeFields xs
-    writeFields xs = do
-        writeOffset =<< loadOffset
-        putStorable $ (fromIntegral (length xs) :: Int64)
-
-instance FromMms a => FromMms (Vector 'Mapped a) where
-    mmsSize _ = 16
-    readFields = liftM2 MappedVector getPointer getStorable
-
 instance Arbitrary Point where
     arbitrary = liftM2 Point arbitrary arbitrary
 
 data SomeData m = SomeData
-    { points :: Vector m Point
+    { points :: List m Point
     , number :: Double
     } deriving (Show)
 
@@ -77,13 +48,13 @@ main = hspec $ do
             let d = 1.8 :: Double
             L.length (writeMms d) `shouldBe` 8
 
+        it "List of two doubles takes 32 bytes" $ do
+            let xs = AllocatedList [1.8, 2.4 :: Double]
+            L.length (writeMms xs) `shouldBe` 32
+
         it "Point in mms is 16 bytes" $ do
             let p = Point 1 3
             L.length (writeMms p) `shouldBe` 16
-
-        it "Vector of two doubles takes 32 bytes" $ do
-            let xs = AllocatedVector [1.8, 2.4 :: Double]
-            L.length (writeMms xs) `shouldBe` 32
 
     describe "readFields . toStrict . writeFields = id" $ do
         let
@@ -96,16 +67,17 @@ main = hspec $ do
 
     describe "Write variable-length data" $ do
         it "Two-component vector can be retrieved back" $ do
-            let xs = AllocatedVector [1.8, 2.4 :: Double]
-            let xs' = readMms . L.toStrict . writeMms $ xs :: Vector 'Mapped Double
-            toList xs' `shouldBe` unAllocated xs
+            let xs = AllocatedList [1.8, 2.4 :: Double]
+            let xs' = readMms . L.toStrict . writeMms $ xs :: List 'Mapped Double
+            toList xs' `shouldBe` toList xs
 
         it "Same for a matrix" $ do
-            let xs = AllocatedVector (map AllocatedVector [[1, 2], [3, 4 :: Double]])
-            let xs' = readMms (L.toStrict . writeMms $ xs) :: Vector 'Mapped (Vector 'Mapped Double)
-            map toList (toList xs') `shouldBe` map unAllocated (unAllocated xs)
+            let xs = AllocatedList (map AllocatedList [[1, 2], [3, 4 :: Double]])
+            let xs' = readMms (L.toStrict . writeMms $ xs) :: List 'Mapped (List 'Mapped Double)
+            map toList (toList xs') `shouldBe` map toList (toList xs)
 
         it "Same for SomeData" $ do
-            let ed = SomeData (AllocatedVector [Point 1 2, Point 3 4]) 18 :: SomeData 'Allocated
+            let ed = SomeData (AllocatedList [Point 1 2, Point 3 4]) 18 :: SomeData 'Allocated
             let ed' = readMms . L.toStrict . writeMms $ ed :: SomeData 'Mapped
-            show ed' `shouldBe` show ed
+            toList (points ed') `shouldBe` toList (points ed)
+            number ed' `shouldBe` number ed
