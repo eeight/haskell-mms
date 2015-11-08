@@ -1,11 +1,13 @@
 module Foreign.Mms.MappedVector(MappedVector) where
 
-import Foreign.Mms.GVector(GVector(..))
-import Foreign.Mms.Core(FromMms(..), Storage(..), getPointer, getStorable)
-import Foreign.Ptr(Ptr, plusPtr)
-import GHC.Int(Int64)
 import Control.Monad(liftM2)
 import Data.Foldable(Foldable(..))
+import Foreign.Mms.Class(FromMms(..), Storage(..))
+import Foreign.Mms.Get(getPointer, getStorable)
+import Foreign.Mms.GVector(GVector(..))
+import Foreign.Mms.Instances
+import Foreign.Ptr(Ptr, plusPtr)
+import GHC.Int(Int64)
 
 data MappedVector a where
     MappedVector :: FromMms a => Ptr a -> Int64 -> MappedVector a

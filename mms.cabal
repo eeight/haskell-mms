@@ -19,8 +19,12 @@ library
                      , Foreign.Mms.GVector
                      , Foreign.Mms.List
   other-modules:       Foreign.Mms.Builder
+                     , Foreign.Mms.Class
                      , Foreign.Mms.Core
+                     , Foreign.Mms.Get
+                     , Foreign.Mms.Instances
                      , Foreign.Mms.MappedVector
+                     , Foreign.Mms.Put
   build-depends:       base >= 4.7 && < 5
                      , bytestring
                      , containers
@@ -36,12 +40,16 @@ library
                      , MultiParamTypeClasses
                      , StandaloneDeriving
                      , DeriveFoldable
+                     , TypeOperators
+                     , DefaultSignatures
+                     , FlexibleContexts
 -- Just so hdevtools are happy
                      , KindSignatures
                      , RecordWildCards
                      , DataKinds
                      , FlexibleInstances
                      , GADTs
+                     , DeriveGeneric
 
 test-suite mms-test
   type:                exitcode-stdio-1.0
@@ -60,6 +68,7 @@ test-suite mms-test
                      , FlexibleInstances
                      , GADTs
                      , KindSignatures
+                     , DeriveGeneric
 
 source-repository head
   type:     git

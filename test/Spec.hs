@@ -9,6 +9,7 @@ import Control.Monad
 import Foreign.Ptr(Ptr, plusPtr)
 import Foreign.Storable(Storable)
 import GHC.Int(Int64)
+import GHC.Generics(Generic)
 import Data.Foldable(Foldable(..))
 
 import qualified Data.ByteString.Lazy as L
@@ -31,11 +32,9 @@ instance Arbitrary Point where
 data SomeData m = SomeData
     { points :: List m Point
     , number :: Double
-    } deriving (Show)
+    } deriving (Show, Generic)
 
-instance ToMms (SomeData 'Allocated) where
-    writeData SomeData{..} = writeData points >> writeData number
-    writeFields SomeData{..} = writeFields points >> writeFields number
+instance ToMms (SomeData 'Allocated)
 
 instance FromMms (SomeData 'Mapped) where
     mmsSize ~SomeData{..} = mmsSize points + mmsSize number

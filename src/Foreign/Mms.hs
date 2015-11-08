@@ -2,8 +2,7 @@ module Foreign.Mms
     ( Mode(..)
     , ToMms(..)
     , FromMms(..)
-    , OffsetPopulatingPut
-    , OffsetConsumingPut
+    , Put
     , Get
     , putStorable
     , getStorable
@@ -13,3 +12,7 @@ module Foreign.Mms
 -- Just re-export some of core things
 
 import Foreign.Mms.Core
+import Foreign.Mms.Class
+import Foreign.Mms.Put
+import Foreign.Mms.Get
+import Foreign.Mms.Instances
