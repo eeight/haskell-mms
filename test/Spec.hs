@@ -17,7 +17,6 @@ data Point = Point Double Double deriving (Eq, Show)
 -- Explicitly make Point and instance of Mms instead of making it
 -- storable and using default instance.
 instance ToMms Point where
-    type Freeze Point = Point
     writeData _ = return ()
     writeFields (Point x y) = mapM_ writeFields [x, y]
 
@@ -46,8 +45,6 @@ instance Foldable (Vector 'Allocated) where
     foldr f z (AllocatedVector xs) = foldr f z xs
 
 instance ToMms a => ToMms (Vector 'Allocated a) where
-    type Freeze (Vector 'Allocated a) = Vector 'Mapped (Freeze a)
-
     writeData xs = mapM_ writeData xs >> saveOffset >> mapM_ writeFields xs
     writeFields xs = do
         writeOffset =<< loadOffset
@@ -66,7 +63,6 @@ data SomeData m = SomeData
     } deriving (Show)
 
 instance ToMms (SomeData 'Allocated) where
-    type Freeze (SomeData 'Allocated) = SomeData 'Mapped
     writeData SomeData{..} = writeData points >> writeData number
     writeFields SomeData{..} = writeFields points >> writeFields number
 

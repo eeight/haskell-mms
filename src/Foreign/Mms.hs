@@ -72,7 +72,6 @@ getPointer = do
     return $ p `plusPtr` fromIntegral offset
 
 class ToMms a where
-    type Freeze a :: *
     writeData :: a -> OffsetPopulatingPut ()
     writeFields :: a -> OffsetConsumingPut ()
 
@@ -81,7 +80,6 @@ class FromMms a where
     readFields :: Get a
 
 instance ToMms Double where
-    type Freeze Double = Double
     writeData _ = return ()
     writeFields = putStorable
 
