@@ -26,9 +26,10 @@ instance FromMms Point where
 instance Arbitrary Point where
     arbitrary = liftM2 Point arbitrary arbitrary
 
-data SomeData m = SomeData
+data SomeData (m :: Mode) = SomeData
     { points :: List m Point
-    , number :: Double
+    , numberDouble :: Double
+    , numberInt :: Int
     } deriving (Show, Generic)
 
 instance ToMms (SomeData 'Allocated)
@@ -70,7 +71,8 @@ main = hspec $ do
             map toList (toList xs') `shouldBe` map toList (toList xs)
 
         it "Same for SomeData" $ do
-            let ed = SomeData (AllocatedList [Point 1 2, Point 3 4]) 18 :: SomeData 'Allocated
+            let ed = SomeData (AllocatedList [Point 1 2, Point 3 4]) 1.823 33 :: SomeData 'Allocated
             let ed' = readMms . L.toStrict . writeMms $ ed :: SomeData 'Mapped
             toList (points ed') `shouldBe` toList (points ed)
-            number ed' `shouldBe` number ed
+            numberDouble ed' `shouldBe` numberDouble ed
+            numberInt ed' `shouldBe` numberInt ed
