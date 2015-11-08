@@ -1,24 +1,8 @@
-module Foreign.Mms.Core
-    ( Mode(..)
-    , ToMms(..)
-    , FromMms(..)
-    , Put
-    , Get
-    , putStorable
-    , getStorable
-    , Storage(..)
-    , writeMms
-    , getPointer
-    , writeOffset
-    , loadOffset
-    , saveOffset
-    ) where
+module Foreign.Mms.Core(Mode(..) , writeMms) where
 
 import Control.Monad.State.Strict
-import Foreign.Mms.Class(ToMms(..), FromMms(..), GToMms(..), Storage(..))
-import Foreign.Mms.Put(
-    Put(..), putStorable, saveOffset, loadOffset, writeOffset)
-import Foreign.Mms.Get(Get, getStorable, getPointer)
+import Foreign.Mms.Class(ToMms(..))
+import Foreign.Mms.Put(runPut)
 import Foreign.Mms.Builder(toLazyByteString)
 import Data.Sequence(null)
 

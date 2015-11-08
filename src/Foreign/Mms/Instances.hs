@@ -7,7 +7,7 @@ import Foreign.Mms.Get(runGet, getStorable)
 import Foreign.Mms.Put(putStorable)
 import Foreign.Ptr(Ptr, plusPtr, castPtr)
 import Foreign.Storable(Storable(..))
-import GHC.Generics(U1(..), K1(..), M1(..), (:*:)(..), (:+:))
+import GHC.Generics(K1(..), M1(..), (:*:)(..), (:+:))
 import System.IO.Unsafe(unsafePerformIO)
 
 import qualified Data.ByteString as B
@@ -21,10 +21,6 @@ instance FromMms Double where
     mmsSize = sizeOf
     readFields = getStorable
 
-instance GToMms U1 where
-    gwriteData _ = return ()
-    gwriteFields _ = return ()
-
 instance ToMms a => GToMms (K1 i a) where
     gwriteData (K1 x) = writeData x
     gwriteFields (K1 x) = writeFields x
@@ -36,6 +32,18 @@ instance GToMms a => GToMms (M1 i c a) where
 instance (GToMms a, GToMms b) => GToMms (a :*: b) where
     gwriteData (x :*: y) = gwriteData x >> gwriteData y
     gwriteFields (x :*: y) = gwriteFields x >> gwriteFields y
+
+instance FromMms a => GFromMms (K1 i a) where
+    gmmsSize ~(K1 x) = mmsSize x
+    greadFields = K1 <$> readFields
+
+instance GFromMms a => GFromMms (M1 i c a) where
+     gmmsSize ~(M1 x) = gmmsSize x
+     greadFields = M1 <$> greadFields
+
+instance (GFromMms a, GFromMms b) => GFromMms (a :*: b) where
+    gmmsSize ~(x :*: y) = gmmsSize x + gmmsSize y
+    greadFields = liftM2 (:*:) greadFields greadFields
 
 instance Storage (Ptr a) where
     readMms = unsafePerformIO . evalStateT (runGet readFields) . castPtr

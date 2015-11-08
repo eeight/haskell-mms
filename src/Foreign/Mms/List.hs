@@ -2,15 +2,9 @@ module Foreign.Mms.List(List(..)) where
 
 import Foreign.Mms.GVector(GVector(..))
 import Foreign.Mms.MappedVector(MappedVector)
-import Foreign.Mms.Core
-    ( Mode(..)
-    , ToMms(..)
-    , FromMms(..)
-    , saveOffset
-    , loadOffset
-    , writeOffset
-    , putStorable
-    )
+import Foreign.Mms.Core(Mode(..))
+import Foreign.Mms.Class(ToMms(..) , FromMms(..))
+import Foreign.Mms.Put(saveOffset, loadOffset , writeOffset , putStorable)
 import GHC.Int(Int64)
 
 data List (m :: Mode) a where

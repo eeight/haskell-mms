@@ -35,10 +35,7 @@ data SomeData m = SomeData
     } deriving (Show, Generic)
 
 instance ToMms (SomeData 'Allocated)
-
-instance FromMms (SomeData 'Mapped) where
-    mmsSize ~SomeData{..} = mmsSize points + mmsSize number
-    readFields = liftM2 SomeData readFields readFields
+instance FromMms (SomeData 'Mapped)
 
 main :: IO ()
 main = hspec $ do
