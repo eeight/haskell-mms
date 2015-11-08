@@ -33,23 +33,23 @@ library
                      , hspec
                      , QuickCheck
   default-language:    Haskell2010
-  default-extensions:  Rank2Types
-                     , DeriveFunctor
-                     , LambdaCase
-                     , GeneralizedNewtypeDeriving
-                     , MultiParamTypeClasses
-                     , StandaloneDeriving
+  default-extensions:  DefaultSignatures
                      , DeriveFoldable
-                     , TypeOperators
-                     , DefaultSignatures
+                     , DeriveFunctor
                      , FlexibleContexts
+                     , GADTs
+                     , GeneralizedNewtypeDeriving
+                     , LambdaCase
+                     , MultiParamTypeClasses
+                     , Rank2Types
+                     , StandaloneDeriving
+                     , TypeOperators
 -- Just so hdevtools are happy
+                     , DataKinds
+                     , DeriveGeneric
+                     , FlexibleInstances
                      , KindSignatures
                      , RecordWildCards
-                     , DataKinds
-                     , FlexibleInstances
-                     , GADTs
-                     , DeriveGeneric
 
 test-suite mms-test
   type:                exitcode-stdio-1.0
@@ -62,13 +62,11 @@ test-suite mms-test
                      , bytestring
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
-  default-extensions: GeneralizedNewtypeDeriving
-                     , DataKinds
-                     , RecordWildCards
-                     , FlexibleInstances
-                     , GADTs
-                     , KindSignatures
+  default-extensions:  DataKinds
                      , DeriveGeneric
+                     , FlexibleInstances
+                     , KindSignatures
+                     , RecordWildCards
 
 source-repository head
   type:     git
