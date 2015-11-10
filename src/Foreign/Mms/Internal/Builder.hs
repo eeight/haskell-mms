@@ -1,7 +1,6 @@
-module Foreign.Mms.Builder
+module Foreign.Mms.Internal.Builder
     ( Builder
     , storable
-    , writtenSoFar
     , toLazyByteString
     ) where
 
@@ -12,7 +11,7 @@ import Foreign.Storable(Storable(..))
 import GHC.ForeignPtr(mallocPlainForeignPtrBytes)
 import GHC.Int(Int64)
 import GHC.Word(Word8)
-import System.IO.Unsafe(unsafePerformIO)
+import System.IO.Unsafe(unsafePerformIO, unsafeInterleaveIO)
 
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Lazy as L
@@ -24,15 +23,13 @@ data Buffer = Buffer
     Int -- size
 
 data Builder = Builder
-    { written :: Int64
-    , runBuilder :: (Buffer -> IO L.ByteString) -> Buffer -> IO L.ByteString
-    }
+    { runBuilder :: (Buffer -> IO L.ByteString) -> Buffer -> IO L.ByteString }
 
 empty :: Builder
-empty = Builder 0 ($)
+empty = Builder ($)
 
 append :: Builder -> Builder -> Builder
-append (Builder n1 f) (Builder n2 g) = Builder (n1 + n2) (f . g)
+append (Builder f) (Builder g) = Builder (f . g)
 
 instance Monoid Builder where
     mempty = empty
@@ -49,27 +46,31 @@ newBuffer s = do
     p <- mallocPlainForeignPtrBytes s
     return $ Buffer p 0 s
 
+lazyPrepend :: (Buffer -> IO L.ByteString)
+            -> Buffer
+            -> Buffer
+            -> IO L.ByteString
+lazyPrepend k (Buffer p u _) nextBuffer =
+        -- unsafeInterleaveIO here is crucial for lazyness
+        L.Chunk (B.PS p 0 u) <$> (unsafeInterleaveIO $ k nextBuffer)
+
 ensureBuffer :: Int -> Builder
-ensureBuffer n = Builder 0 $ \k b@(Buffer p u s) ->
+ensureBuffer n = Builder $ \k b@(Buffer p u s) ->
     if s - u >= n then k b else do
-        b <- newBuffer (max n defaultSize)
-        L.Chunk (B.PS p 0 u) <$> k b
+        b' <- newBuffer (max n defaultSize)
+        lazyPrepend k b b'
 
 flush :: Builder
-flush = Builder 0 $ \k (Buffer p u s) ->
-    L.Chunk (B.PS p 0 u) <$> k (Buffer p s s)
+flush = Builder $ \k b@(Buffer p u s) -> lazyPrepend k b (Buffer p s s)
 
 writeToBuffer :: Int -> (Buffer -> IO Buffer) -> Builder
 writeToBuffer n f = ensureBuffer n <> builder where
-    builder = (Builder (fromIntegral n) $ \k b -> k =<< f b)
+    builder = Builder $ \k b -> k =<< f b
 
 toLazyByteString :: Builder -> L.ByteString
 toLazyByteString builder = unsafePerformIO $ do
     b <- newBuffer defaultSize
     runBuilder (builder <> flush) (const $ return L.empty) b
-
-writtenSoFar :: Builder -> Int64
-writtenSoFar = written
 
 storable :: (Storable a) => a -> Builder
 storable x = let
