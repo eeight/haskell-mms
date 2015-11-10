@@ -46,22 +46,19 @@ newBuffer s = do
     p <- mallocPlainForeignPtrBytes s
     return $ Buffer p 0 s
 
-lazyPrepend :: (Buffer -> IO L.ByteString)
-            -> Buffer
-            -> Buffer
-            -> IO L.ByteString
-lazyPrepend k (Buffer p u _) nextBuffer =
+lazyPrepend :: Buffer -> IO L.ByteString -> IO L.ByteString
+lazyPrepend (Buffer p u _) str =
         -- unsafeInterleaveIO here is crucial for lazyness
-        L.Chunk (B.PS p 0 u) <$> (unsafeInterleaveIO $ k nextBuffer)
+        L.Chunk (B.PS p 0 u) <$> unsafeInterleaveIO str
 
 ensureBuffer :: Int -> Builder
 ensureBuffer n = Builder $ \k b@(Buffer p u s) ->
     if s - u >= n then k b else do
         b' <- newBuffer (max n defaultSize)
-        lazyPrepend k b b'
+        lazyPrepend b (k b')
 
 flush :: Builder
-flush = Builder $ \k b@(Buffer p u s) -> lazyPrepend k b (Buffer p s s)
+flush = Builder $ \k b@(Buffer p u s) -> lazyPrepend b (k $ Buffer p s s)
 
 writeToBuffer :: Int -> (Buffer -> IO Buffer) -> Builder
 writeToBuffer n f = ensureBuffer n <> builder where
