@@ -28,7 +28,7 @@ builderTest = do
         it "is really lazy" $ do
             -- Verify that the last storable won't be evaluated when only some
             -- prefix of the result is evaluated.
-            let builder = longBuilder <> storable (undefined :: Int64)
+            let builder = longBuilder <> undefined
             let str = toLazyByteString builder
             evaluate $ L.head str
             evaluate $ L.take 10000 str
