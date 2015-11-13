@@ -3,7 +3,6 @@ module Builder where
 import Foreign.Mms.Internal.Builder
 
 import Test.Hspec
-import Test.QuickCheck
 
 import Control.Exception(evaluate)
 import Data.Monoid((<>))
