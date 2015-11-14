@@ -19,6 +19,7 @@ library
                      , Foreign.Mms.GVector
                      , Foreign.Mms.List
                      , Foreign.Mms.Internal.Builder
+                     , Foreign.Mms.Internal.Layout
   other-modules:       Foreign.Mms.Class
                      , Foreign.Mms.Core
                      , Foreign.Mms.Get
@@ -57,6 +58,7 @@ test-suite mms-test
   hs-source-dirs:      test
   other-modules:       Mms
                      , Builder
+                     , Layout
   main-is:             Spec.hs
   build-depends:       base
                      , mms
@@ -70,6 +72,7 @@ test-suite mms-test
                      , FlexibleInstances
                      , KindSignatures
                      , RecordWildCards
+                     , NamedFieldPuns
 
 source-repository head
   type:     git
