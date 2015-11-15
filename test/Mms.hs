@@ -15,15 +15,10 @@ import Data.Foldable(Foldable(..))
 
 import qualified Data.ByteString.Lazy as L
 
-data Point = Point Double Double deriving (Eq, Show)
+data Point = Point Double Double deriving (Eq, Show, Generic)
 
-instance ToMms Point where
-    writeData _ = return ()
-    writeFields (Point x y) = mapM_ writeFields [x, y]
-
-instance FromMms Point where
-    mmsSize _ = 16
-    readFields = liftM2 Point readFields readFields
+instance ToMms Point
+instance FromMms Point
 
 instance Arbitrary Point where
     arbitrary = liftM2 Point arbitrary arbitrary
