@@ -1,4 +1,4 @@
-module Foreign.Mms.Get (Get(..), getStorable, getPointer) where
+module Foreign.Mms.Get (Get(..), getStorable, getPointer, skip) where
 
 import Control.Monad.State.Strict
 import Foreign.Ptr(Ptr, plusPtr, castPtr)
@@ -22,4 +22,5 @@ getPointer = do
     offset <- getStorable :: Get Int64
     return $ p `plusPtr` fromIntegral offset
 
-
+skip :: Int -> Get ()
+skip x = modify' (`plusPtr` x)

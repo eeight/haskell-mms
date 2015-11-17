@@ -38,6 +38,7 @@ library
                      , DeriveFoldable
                      , DeriveFunctor
                      , FlexibleContexts
+                     , FunctionalDependencies
                      , GADTs
                      , GeneralizedNewtypeDeriving
                      , LambdaCase
@@ -71,8 +72,9 @@ test-suite mms-test
                      , DeriveGeneric
                      , FlexibleInstances
                      , KindSignatures
-                     , RecordWildCards
+                     , MultiParamTypeClasses
                      , NamedFieldPuns
+                     , RecordWildCards
 
 source-repository head
   type:     git

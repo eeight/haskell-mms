@@ -1,42 +1,51 @@
 module Foreign.Mms.Class
-    ( ToMms(..)
-    , FromMms(..)
-    , GToMms(..)
-    , GFromMms(..)
+    ( Mms(..)
+    , GMms(..)
     , Storage(..)
     ) where
 
 import Foreign.Mms.Get(Get(..))
+import Foreign.Mms.Internal.Layout(Layout(..), struct, paddings)
 import Foreign.Mms.Put(Put(..))
 import GHC.Generics(Generic(..))
 
-class ToMms a where
+class Mms a m | a -> m, m -> a where
     writeData :: a -> Put ()
     writeFields :: a -> Put ()
 
-    default writeData :: (Generic a, GToMms (Rep a)) => a -> Put ()
+    default writeData ::
+        (Generic a, Generic m, GMms (Rep a) (Rep m)) => a -> Put ()
     writeData = gwriteData . from
 
-    default writeFields :: (Generic a, GToMms (Rep a)) => a -> Put ()
-    writeFields = gwriteFields . from
+    default writeFields ::
+        (Generic a, Generic m, GMms (Rep a) (Rep m)) => a -> Put ()
+    writeFields x = let
+        mapped = fakeMapped x
+        pads = paddings . struct . gfields . from $ mapped
+        in gwriteFields (from x) pads
 
-class FromMms a where
-    mmsSize :: a -> Int
-    readFields :: Get a
+    mmsSize :: m -> Int
+    mmsAlignment :: m -> Int
+    readFields :: Get m
 
-    default mmsSize :: (Generic a, GFromMms (Rep a)) => a -> Int
-    mmsSize = gmmsSize . from
+    default mmsSize :: (Generic a, Generic m, GMms (Rep a) (Rep m)) => m -> Int
+    mmsSize = structSize . struct . gfields . from
 
-    default readFields :: (Generic a, GFromMms (Rep a)) => Get a
+    default mmsAlignment ::
+        (Generic a, Generic m, GMms (Rep a) (Rep m)) => m -> Int
+    mmsAlignment = structAlignment . struct . gfields . from
+
+    default readFields :: (Generic a, Generic m, GMms (Rep a) (Rep m)) => Get m
     readFields = to <$> greadFields
 
-class GToMms f where
-    gwriteData :: f a -> Put ()
-    gwriteFields :: f a -> Put ()
+fakeMapped :: Mms a m => a -> m
+fakeMapped _ = undefined
 
-class GFromMms f where
-    gmmsSize :: f a -> Int
-    greadFields :: Get (f a)
+class GMms fa fm | fa -> fm, fm -> fa where
+    gwriteData :: fa a -> Put ()
+    gwriteFields :: fa a -> [Int] -> Put ()
+    gfields :: fm a -> [Layout]
+    greadFields :: Get (fm a)
 
-class Storage a where
-    readMms :: FromMms b => a -> b
+class Storage s where
+    readMms :: Mms a m => s -> m

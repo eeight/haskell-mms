@@ -1,10 +1,18 @@
-module Foreign.Mms.Put(
-    Put, evalPut, putStorable, saveOffset, loadOffset, writeOffset) where
+module Foreign.Mms.Put
+    ( Put
+    , evalPut
+    , putStorable
+    , saveOffset
+    , loadOffset
+    , writeOffset
+    , pad
+    ) where
 
 import Control.Arrow(first, second)
 import Control.Monad.State.Strict
 import Data.Sequence(Seq, (|>), viewl, ViewL(..), null)
-import Foreign.Mms.Internal.Builder(Builder, storable, toLazyByteString)
+import Foreign.Mms.Internal.Builder(
+    Builder, storable, aligner, toLazyByteString)
 import Foreign.Storable(Storable(..))
 import GHC.Int(Int64)
 
@@ -49,6 +57,12 @@ writeOffset :: Int64 -> Put ()
 writeOffset offset = do
      offsetNow <- gets writtenSoFar
      putStorable (offset - offsetNow)
+
+pad :: Int -> Put ()
+pad 0 = return ()
+pad x = modify' $
+    modifyWrittenSoFar (+ fromIntegral x) .
+    modifyBuilder (`mappend` aligner x)
 
 evalPut :: Put () -> L.ByteString
 evalPut (Put p) = let

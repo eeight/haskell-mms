@@ -1,6 +1,7 @@
 module Foreign.Mms.Internal.Builder
     ( Builder
     , storable
+    , aligner
     , toLazyByteString
     ) where
 
@@ -75,3 +76,9 @@ storable x = let
     in writeToBuffer size $ \(Buffer p u s) -> do
         withForeignPtr p $ \p -> poke (p `plusPtr` u) x
         return $ Buffer p (u + size) s
+
+aligner :: Int -> Builder
+aligner size = writeToBuffer size $ \(Buffer p u s) -> do
+    withForeignPtr p $ \p ->
+        B.memset (p `plusPtr` u) 0 (fromIntegral size)
+    return $ Buffer p (u + size) s

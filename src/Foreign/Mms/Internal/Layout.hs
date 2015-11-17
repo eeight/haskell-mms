@@ -1,4 +1,10 @@
-module Foreign.Mms.Internal.Layout(Layout(..), builtin, struct) where
+module Foreign.Mms.Internal.Layout
+    ( Layout(..)
+    , builtin
+    , struct
+    , mkLayout
+    , paddings
+    ) where
 
 import Data.Foldable(foldl')
 
@@ -9,12 +15,14 @@ data Layout = Layout
     } deriving (Show, Eq)
 
 builtin :: Int -> Layout
-builtin size = Layout size size []
+builtin size = mkLayout size size
 
-padding :: Int -> Int -> Int
-padding pos alignment = (alignment - pos `mod` alignment) `mod` alignment
+mkLayout :: Int -> Int -> Layout
+mkLayout alignment size = Layout alignment size []
 
 layout pos (f:g:fs) = let
+    padding pos alignment =
+        (alignment - pos `mod` alignment) `mod` alignment
     fEnd = pos + structSize f
     pad = padding fEnd $ structAlignment g
     in pad:layout (fEnd + pad) (g:fs)
@@ -27,3 +35,6 @@ struct fields = let
     size = sum pads + sum (map structSize fields)
     result = Layout alignment size $ zip fields pads
     in result
+
+paddings :: Layout -> [Int]
+paddings = map snd . structFields

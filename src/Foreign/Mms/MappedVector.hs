@@ -1,20 +1,30 @@
-module Foreign.Mms.MappedVector(MappedVector) where
+module Foreign.Mms.MappedVector
+    ( MappedVector
+    , mappedVectorSize
+    , mappedVectorAlignment
+    , mappedVectorReadFields
+    ) where
 
 import Control.Monad(liftM2)
 import Data.Foldable(Foldable(..))
-import Foreign.Mms.Class(FromMms(..), Storage(..))
-import Foreign.Mms.Get(getPointer)
+import Foreign.Mms.Class(Mms(..), Storage(..))
 import Foreign.Mms.GVector(GVector(..))
+import Foreign.Mms.Get(Get, getPointer)
 import Foreign.Mms.Instances
 import Foreign.Ptr(Ptr, plusPtr)
 import GHC.Int(Int64)
 
 data MappedVector a where
-    MappedVector :: FromMms a => Ptr a -> Int64 -> MappedVector a
+    MappedVector :: Mms a m => Ptr m -> Int64 -> MappedVector m
 
-instance FromMms a => FromMms (MappedVector a) where
-    mmsSize _ = 16
-    readFields = liftM2 MappedVector getPointer readFields
+mappedVectorSize :: Int
+mappedVectorSize = 16
+
+mappedVectorAlignment :: Int
+mappedVectorAlignment = 8
+
+mappedVectorReadFields :: Mms a m => Get (MappedVector m)
+mappedVectorReadFields = liftM2 MappedVector getPointer readFields
 
 instance GVector MappedVector a where
     glength (MappedVector _ length) = fromIntegral length
@@ -31,7 +41,7 @@ instance Foldable MappedVector where
     toList (MappedVector p length) = let
         xs = take (fromIntegral length) $ map readMms $
             iterate (`plusPtr` elementSize) p
-        elementSize = mmsSize $ head xs
+        elementSize = mmsSize . head $ xs
         in xs
 
     foldr f z v = foldr f z (toList v)

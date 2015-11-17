@@ -7,9 +7,8 @@ import Test.Hspec
 import Control.Exception(evaluate)
 import Data.Monoid((<>))
 
-pads = map snd . structFields
 layoutShouldBe l (ps, s) = do
-    pads l `shouldBe` ps
+    paddings l `shouldBe` ps
     structSize l `shouldBe` s
 
 layoutTest:: Spec

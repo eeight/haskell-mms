@@ -1,7 +1,6 @@
 module Foreign.Mms
     ( Mode(..)
-    , ToMms(..)
-    , FromMms(..)
+    , Mms(..)
     , Put
     , Get
     , Storage(..)
