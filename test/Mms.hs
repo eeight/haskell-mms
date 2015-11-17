@@ -9,7 +9,7 @@ import Test.QuickCheck
 
 import Control.Monad
 import Foreign.Ptr(Ptr, plusPtr)
-import GHC.Int(Int64)
+import GHC.Int(Int64, Int8)
 import GHC.Generics(Generic)
 import Data.Foldable(Foldable(..))
 
@@ -24,8 +24,8 @@ instance Arbitrary Point where
 
 data SomeData (m :: Mode) = SomeData
     { points :: List m Point
+    , numberInt :: Int8
     , numberDouble :: Double
-    , numberInt :: Int
     } deriving (Show, Generic)
 
 instance Mms (SomeData 'Allocated) (SomeData 'Mapped)
@@ -44,6 +44,10 @@ mmsTest = do
         it "Point is 16 bytes" $ do
             let p = Point 1 3
             L.length (writeMms p) `shouldBe` 16
+
+        it "SomeData is 32 bytes" $ do
+            let sd =  SomeData (AllocatedList []) 33 1.823
+            L.length (writeMms sd) `shouldBe` 32
 
     describe "readFields . toStrict . writeFields = id" $ do
         let
@@ -64,8 +68,8 @@ mmsTest = do
             map toList (toList xs') `shouldBe` map toList (toList xs)
 
         it "SomeData" $ do
-            let ed = SomeData (AllocatedList [Point 1 2, Point 3 4]) 1.823 33 :: SomeData 'Allocated
-            let ed' = readMms . L.toStrict . writeMms $ ed :: SomeData 'Mapped
-            toList (points ed') `shouldBe` toList (points ed)
-            numberDouble ed' `shouldBe` numberDouble ed
-            numberInt ed' `shouldBe` numberInt ed
+            let sd = SomeData (AllocatedList [Point 1 2, Point 3 4]) 33 1.823
+            let sd' = readMms . L.toStrict . writeMms $ sd :: SomeData 'Mapped
+            toList (points sd') `shouldBe` toList (points sd)
+            numberDouble sd' `shouldBe` numberDouble sd
+            numberInt sd' `shouldBe` numberInt sd

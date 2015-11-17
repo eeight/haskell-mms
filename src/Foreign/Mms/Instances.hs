@@ -4,7 +4,7 @@ module Foreign.Mms.Instances() where
 import Control.Monad.State.Strict
 import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
 import Foreign.Mms.Class
-import Foreign.Mms.Get(runGet, getStorable)
+import Foreign.Mms.Get(runGet, getStorable, skip)
 import Foreign.Mms.Internal.Layout(Layout(..), builtin, mkLayout)
 import Foreign.Mms.Put(putStorable, pad)
 import Foreign.Ptr(Ptr, plusPtr, castPtr)
@@ -80,30 +80,31 @@ instance Mms a m => GMms (K1 i a) (K1 i m)  where
     gwriteData (K1 x) = writeData x
     gwriteFields (K1 x) [p] = writeFields x >> pad p
     gfields (K1 x) = [mkLayout (mmsAlignment x) (mmsSize x)]
-    greadFields = K1 <$> readFields
+    greadFields [p] = K1 <$> (readFields <* skip p)
 
 instance GMms a m => GMms (M1 i c a) (M1 i c m) where
     gwriteData (M1 x) = gwriteData x
     gwriteFields (M1 x) ps = gwriteFields x ps
     gfields (M1 x) = gfields x
-    greadFields = M1 <$> greadFields
+    greadFields ps = M1 <$> greadFields ps
 
 instance (Mms a m, GMms fa fm) => GMms (K1 i a :*: fa) (K1 i m :*: fm) where
     gwriteData ((K1 x) :*: y) = writeData x >> gwriteData y
     gwriteFields ((K1 x) :*: y) (p:ps) = writeFields x >> pad p >> gwriteFields y ps
     gfields ~((K1 x) :*: y) = mkLayout (mmsAlignment x) (mmsSize x) : gfields y
-    greadFields = do
+    greadFields (p:ps)= do
         x <- readFields
-        y <- greadFields
+        skip p
+        y <- greadFields ps
         return $ (K1 x) :*: y
 
 instance (GMms fa fm, GMms fa' fm') => GMms (M1 i c fa :*: fa') (M1 i c fm :*: fm') where
     gwriteData ((M1 x) :*: y) = gwriteData x >> gwriteData y
     gwriteFields ((M1 x) :*: y) (p:ps) = gwriteFields x [p] >> gwriteFields y ps
     gfields ~((M1 x) :*: y) = gfields x ++ gfields y
-    greadFields = do
-        x <- greadFields
-        y <- greadFields
+    greadFields (p:ps) = do
+        x <- greadFields [p]
+        y <- greadFields ps
         return $ (M1 x) :*: y
 
 instance Storage (Ptr a) where

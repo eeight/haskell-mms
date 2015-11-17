@@ -20,6 +20,9 @@ class Mms a m | a -> m, m -> a where
     default writeFields ::
         (Generic a, Generic m, GMms (Rep a) (Rep m)) => a -> Put ()
     writeFields x = let
+        fakeMapped :: Mms a m => a -> m
+        fakeMapped _ = undefined
+
         mapped = fakeMapped x
         pads = paddings . struct . gfields . from $ mapped
         in gwriteFields (from x) pads
@@ -36,16 +39,19 @@ class Mms a m | a -> m, m -> a where
     mmsAlignment = structAlignment . struct . gfields . from
 
     default readFields :: (Generic a, Generic m, GMms (Rep a) (Rep m)) => Get m
-    readFields = to <$> greadFields
+    readFields = let
+        fakeUnget :: Get a -> a
+        fakeUnget _ = undefined
 
-fakeMapped :: Mms a m => a -> m
-fakeMapped _ = undefined
+        pads = paddings . struct . gfields . from . fakeUnget $ result
+        result = to <$> greadFields pads
+        in result
 
 class GMms fa fm | fa -> fm, fm -> fa where
     gwriteData :: fa a -> Put ()
     gwriteFields :: fa a -> [Int] -> Put ()
     gfields :: fm a -> [Layout]
-    greadFields :: Get (fm a)
+    greadFields :: [Int] -> Get (fm a)
 
 class Storage s where
     readMms :: Mms a m => s -> m
