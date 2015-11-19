@@ -4,6 +4,7 @@ module Foreign.Mms.Class
     , Storage(..)
     ) where
 
+import Control.Monad.State.Strict(StateT, evalStateT)
 import Foreign.Mms.Get(Get(..))
 import Foreign.Mms.Internal.Layout(Layout(..), struct, paddings)
 import Foreign.Mms.Put(Put(..))
@@ -25,7 +26,7 @@ class Mms a m | a -> m, m -> a where
 
         mapped = fakeMapped x
         pads = paddings . struct . gfields . from $ mapped
-        in gwriteFields (from x) pads
+        in evalStateT (gwriteFields (from x)) pads
 
     mmsSize :: m -> Int
     mmsAlignment :: m -> Int
@@ -44,14 +45,14 @@ class Mms a m | a -> m, m -> a where
         fakeUnget _ = undefined
 
         pads = paddings . struct . gfields . from . fakeUnget $ result
-        result = to <$> greadFields pads
+        result = to <$> evalStateT greadFields pads
         in result
 
 class GMms fa fm | fa -> fm, fm -> fa where
     gwriteData :: fa a -> Put ()
-    gwriteFields :: fa a -> [Int] -> Put ()
+    gwriteFields :: fa a -> StateT [Int] Put ()
     gfields :: fm a -> [Layout]
-    greadFields :: [Int] -> Get (fm a)
+    greadFields :: StateT [Int] Get (fm a)
 
 class Storage s where
     readMms :: Mms a m => s -> m

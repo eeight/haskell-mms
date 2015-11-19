@@ -72,40 +72,31 @@ instance Mms Double Double where
     mmsAlignment = alignment
     readFields = getStorable
 
+liftPopHead :: (Monad m, MonadTrans t, MonadState [Int] (t m)) =>
+    (Int -> m ()) -> t m ()
+liftPopHead f = (lift . f  =<< gets head) <* modify' tail
+
 -- All of the following instances break coverage condition for functional
 -- dependencies of GMms. However, they satisfy weak coverage condition
 -- which still ensures typechecker termination. We use UndecidableInstances
 -- to allow this instances to exist.
 instance Mms a m => GMms (K1 i a) (K1 i m)  where
     gwriteData (K1 x) = writeData x
-    gwriteFields (K1 x) [p] = writeFields x >> pad p
+    gwriteFields (K1 x) = lift (writeFields x) >> liftPopHead pad
     gfields (K1 x) = [mkLayout (mmsAlignment x) (mmsSize x)]
-    greadFields [p] = K1 <$> (readFields <* skip p)
+    greadFields = K1 <$> lift readFields <* liftPopHead skip
 
 instance GMms a m => GMms (M1 i c a) (M1 i c m) where
     gwriteData (M1 x) = gwriteData x
-    gwriteFields (M1 x) ps = gwriteFields x ps
+    gwriteFields (M1 x) = gwriteFields x
     gfields (M1 x) = gfields x
-    greadFields ps = M1 <$> greadFields ps
+    greadFields = M1 <$> greadFields
 
-instance (Mms a m, GMms fa fm) => GMms (K1 i a :*: fa) (K1 i m :*: fm) where
-    gwriteData ((K1 x) :*: y) = writeData x >> gwriteData y
-    gwriteFields ((K1 x) :*: y) (p:ps) = writeFields x >> pad p >> gwriteFields y ps
-    gfields ~((K1 x) :*: y) = mkLayout (mmsAlignment x) (mmsSize x) : gfields y
-    greadFields (p:ps)= do
-        x <- readFields
-        skip p
-        y <- greadFields ps
-        return $ (K1 x) :*: y
-
-instance (GMms fa fm, GMms fa' fm') => GMms (M1 i c fa :*: fa') (M1 i c fm :*: fm') where
-    gwriteData ((M1 x) :*: y) = gwriteData x >> gwriteData y
-    gwriteFields ((M1 x) :*: y) (p:ps) = gwriteFields x [p] >> gwriteFields y ps
-    gfields ~((M1 x) :*: y) = gfields x ++ gfields y
-    greadFields (p:ps) = do
-        x <- greadFields [p]
-        y <- greadFields ps
-        return $ (M1 x) :*: y
+instance (GMms fa fm, GMms ga gm) => GMms (fa :*: ga) (fm :*: gm) where
+    gwriteData (x :*: y) = gwriteData x >> gwriteData y
+    gwriteFields (x :*: y) = gwriteFields x >> gwriteFields y
+    gfields ~(x :*: y) = gfields x ++ gfields y
+    greadFields = liftM2 (:*:) greadFields greadFields
 
 instance Storage (Ptr a) where
     readMms = unsafePerformIO . evalStateT (runGet readFields) . castPtr

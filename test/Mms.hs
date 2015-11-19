@@ -30,6 +30,25 @@ data SomeData (m :: Mode) = SomeData
 
 instance Mms (SomeData 'Allocated) (SomeData 'Mapped)
 
+-- A type fith 32 fields
+data ManyFields = ManyFields
+    Int Int Int Int Int Int Int Int Int Int Int Int Int Int Int Int
+    Int Int Int Int Int Int Int Int Int Int Int Int Int Int Int Int
+    deriving (Eq, Show, Generic)
+
+instance Mms ManyFields ManyFields
+
+instance Arbitrary ManyFields where
+    arbitrary = return ManyFields
+        `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
+        `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
+        `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
+        `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
+        `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
+        `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
+        `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
+        `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
+
 mmsTest:: Spec
 mmsTest = do
     describe "writeFields has predictable size" $ do
@@ -55,6 +74,7 @@ mmsTest = do
             prop x = (readMms . L.toStrict . writeMms) x == x
         it "Double" $ quickCheck (prop :: Double -> Bool)
         it "Point" $ quickCheck (prop :: Point -> Bool)
+        it "ManyFields" $ quickCheck (prop :: ManyFields -> Bool)
 
     describe "Variable-length data has predictable size" $ do
         it "Two-component vector" $ do
