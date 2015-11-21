@@ -2,7 +2,7 @@ module Mms where
 
 import Foreign.Mms
 import Foreign.Mms.List
-import Foreign.Mms.GVector
+import Foreign.Mms.Vector
 
 import Test.Hspec
 import Test.QuickCheck

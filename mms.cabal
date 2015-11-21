@@ -16,10 +16,10 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   exposed-modules:     Foreign.Mms
-                     , Foreign.Mms.GVector
-                     , Foreign.Mms.List
                      , Foreign.Mms.Internal.Builder
                      , Foreign.Mms.Internal.Layout
+                     , Foreign.Mms.List
+                     , Foreign.Mms.Vector
   other-modules:       Foreign.Mms.Class
                      , Foreign.Mms.Core
                      , Foreign.Mms.Get

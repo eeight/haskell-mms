@@ -5,12 +5,14 @@ module Foreign.Mms.MappedVector
     , mappedVectorReadFields
     ) where
 
+import Prelude hiding(length)
+
 import Control.Monad(liftM2)
 import Data.Foldable(Foldable(..))
 import Foreign.Mms.Class(Mms(..), Storage(..))
-import Foreign.Mms.GVector(GVector(..))
 import Foreign.Mms.Get(Get, getPointer)
 import Foreign.Mms.Instances
+import Foreign.Mms.Vector(Vector(..))
 import Foreign.Ptr(Ptr, plusPtr)
 import GHC.Int(Int64)
 
@@ -26,9 +28,9 @@ mappedVectorAlignment = 8
 mappedVectorReadFields :: Mms a m => Get (MappedVector m)
 mappedVectorReadFields = liftM2 MappedVector getPointer readFields
 
-instance GVector MappedVector a where
-    glength (MappedVector _ length) = fromIntegral length
-    at (MappedVector p length) index = let
+instance Vector MappedVector a where
+    length (MappedVector _ length) = fromIntegral length
+    (!) (MappedVector p length) index = let
         size = mmsSize result
         result = readMms (p `plusPtr` (size * index))
         in result

@@ -1,7 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
 module Foreign.Mms.List(List(..)) where
 
-import Foreign.Mms.GVector(GVector(..))
+import Prelude hiding(length)
+import qualified Prelude
+
+import Foreign.Mms.Vector(Vector(..))
 import Foreign.Mms.MappedVector
 import Foreign.Mms.Core(Mode(..))
 import Foreign.Mms.Class(Mms(..))
@@ -23,16 +26,16 @@ instance Mms a m => Mms (List 'Allocated a) (List 'Mapped m) where
         mapM_ writeData xs >> saveOffset >> mapM_ writeFields xs
     writeFields (AllocatedList xs) = do
         writeOffset =<< loadOffset
-        writeFields $ (fromIntegral (length xs) :: Int64)
+        writeFields $ (fromIntegral (Prelude.length xs) :: Int64)
 
     mmsSize _ = mappedVectorSize
     mmsAlignment _ = mappedVectorAlignment
     readFields = MappedList <$> mappedVectorReadFields
 
-instance GVector (List 'Allocated) a where
-    glength = length . unAllocatedList
-    at = (!!) . unAllocatedList
+instance Vector (List 'Allocated) a where
+    length = Prelude.length . unAllocatedList
+    (!) = (!!) . unAllocatedList
 
-instance GVector (List 'Mapped) a where
-    glength = glength . unMappedList
-    at = at . unMappedList
+instance Vector (List 'Mapped) a where
+    length = length . unMappedList
+    (!) = (!) . unMappedList
