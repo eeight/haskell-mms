@@ -10,7 +10,8 @@ import Foreign.Mms.Put(putStorable, pad)
 import Foreign.Ptr(Ptr, plusPtr, castPtr)
 import Foreign.Storable(Storable(..))
 import GHC.Generics(K1(..), M1(..), (:*:)(..), (:+:))
-import GHC.Int(Int8, Int16, Int32, Int64)
+import GHC.Int
+import GHC.Word
 import System.IO.Unsafe(unsafePerformIO)
 
 import qualified Data.ByteString as B
@@ -49,6 +50,38 @@ instance Mms Int32 Int32 where
     readFields = getStorable
 
 instance Mms Int64 Int64 where
+    writeData _ = return ()
+    writeFields = putStorable
+
+    mmsSize = sizeOf
+    mmsAlignment = alignment
+    readFields = getStorable
+
+instance Mms Word8 Word8 where
+    writeData _ = return ()
+    writeFields = putStorable
+
+    mmsSize = sizeOf
+    mmsAlignment = alignment
+    readFields = getStorable
+
+instance Mms Word16 Word16 where
+    writeData _ = return ()
+    writeFields = putStorable
+
+    mmsSize = sizeOf
+    mmsAlignment = alignment
+    readFields = getStorable
+
+instance Mms Word32 Word32 where
+    writeData _ = return ()
+    writeFields = putStorable
+
+    mmsSize = sizeOf
+    mmsAlignment = alignment
+    readFields = getStorable
+
+instance Mms Word64 Word64 where
     writeData _ = return ()
     writeFields = putStorable
 
