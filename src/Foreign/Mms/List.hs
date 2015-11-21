@@ -8,8 +8,7 @@ import Foreign.Mms.Vector(Vector(..))
 import Foreign.Mms.MappedVector
 import Foreign.Mms.Core(Mode(..))
 import Foreign.Mms.Class(Mms(..))
-import Foreign.Mms.Put(saveOffset, loadOffset , writeOffset)
-import GHC.Int(Int64)
+import Foreign.Mms.Put(saveOffset)
 
 data List (m :: Mode) a where
     AllocatedList :: { unAllocatedList :: [a] } -> List 'Allocated a
@@ -24,9 +23,7 @@ deriving instance Show a => Show (List m a)
 instance Mms a m => Mms (List 'Allocated a) (List 'Mapped m) where
     writeData (AllocatedList xs) =
         mapM_ writeData xs >> saveOffset >> mapM_ writeFields xs
-    writeFields (AllocatedList xs) = do
-        writeOffset =<< loadOffset
-        writeFields $ (fromIntegral (Prelude.length xs) :: Int64)
+    writeFields = mappedVectorWriteFields . fromIntegral . Prelude.length
 
     mmsSize _ = mappedVectorSize
     mmsAlignment _ = mappedVectorAlignment

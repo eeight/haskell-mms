@@ -19,6 +19,7 @@ library
                      , Foreign.Mms.Internal.Builder
                      , Foreign.Mms.Internal.Layout
                      , Foreign.Mms.List
+                     , Foreign.Mms.String
                      , Foreign.Mms.Vector
   other-modules:       Foreign.Mms.Class
                      , Foreign.Mms.Core

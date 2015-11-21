@@ -1,8 +1,9 @@
 module Foreign.Mms.MappedVector
-    ( MappedVector
+    ( MappedVector(..)
     , mappedVectorSize
     , mappedVectorAlignment
     , mappedVectorReadFields
+    , mappedVectorWriteFields
     ) where
 
 import Prelude hiding(length)
@@ -12,6 +13,7 @@ import Data.Foldable(Foldable(..))
 import Foreign.Mms.Class(Mms(..), Storage(..))
 import Foreign.Mms.Get(Get, getPointer)
 import Foreign.Mms.Instances
+import Foreign.Mms.Put(Put, writeOffset, loadOffset)
 import Foreign.Mms.Vector(Vector(..))
 import Foreign.Ptr(Ptr, plusPtr)
 import GHC.Int(Int64)
@@ -27,6 +29,9 @@ mappedVectorAlignment = 8
 
 mappedVectorReadFields :: Mms a m => Get (MappedVector m)
 mappedVectorReadFields = liftM2 MappedVector getPointer readFields
+
+mappedVectorWriteFields :: Int64 -> Put ()
+mappedVectorWriteFields len = (writeOffset =<< loadOffset) >> writeFields len
 
 instance Vector MappedVector a where
     length (MappedVector _ length) = fromIntegral length

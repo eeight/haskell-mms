@@ -6,7 +6,7 @@ import Foreign.ForeignPtr.Unsafe(unsafeForeignPtrToPtr)
 import Foreign.Mms.Class
 import Foreign.Mms.Get(runGet, getStorable, skip)
 import Foreign.Mms.Internal.Layout(Layout(..), builtin, mkLayout)
-import Foreign.Mms.Put(putStorable, pad)
+import Foreign.Mms.Put(putStorable, zeroPad)
 import Foreign.Ptr(Ptr, plusPtr, castPtr)
 import Foreign.Storable(Storable(..))
 import GHC.Generics(K1(..), M1(..), (:*:)(..), (:+:))
@@ -115,7 +115,7 @@ liftPopHead f = (lift . f  =<< gets head) <* modify' tail
 -- to allow this instances to exist.
 instance Mms a m => GMms (K1 i a) (K1 i m)  where
     gwriteData (K1 x) = writeData x
-    gwriteFields (K1 x) = lift (writeFields x) >> liftPopHead pad
+    gwriteFields (K1 x) = lift (writeFields x) >> liftPopHead zeroPad
     gfields (K1 x) = [mkLayout (mmsAlignment x) (mmsSize x)]
     greadFields = K1 <$> lift readFields <* liftPopHead skip
 

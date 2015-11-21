@@ -2,6 +2,7 @@ module Mms where
 
 import Foreign.Mms
 import Foreign.Mms.List
+import Foreign.Mms.String
 import Foreign.Mms.Vector
 
 import Test.Hspec
@@ -14,6 +15,10 @@ import GHC.Generics(Generic)
 import Data.Foldable(Foldable(..))
 
 import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Internal as B
+
+import Debug.Trace
 
 data Point = Point Double Double deriving (Eq, Show, Generic)
 
@@ -26,6 +31,7 @@ data SomeData (m :: Mode) = SomeData
     { points :: List m Point
     , numberInt :: Int8
     , numberDouble :: Double
+    , string :: B.ByteString
     } deriving (Show, Generic)
 
 instance Mms (SomeData 'Allocated) (SomeData 'Mapped)
@@ -49,6 +55,9 @@ instance Arbitrary ManyFields where
         `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
         `ap` arbitrary `ap` arbitrary `ap` arbitrary `ap` arbitrary
 
+instance Arbitrary B.ByteString where
+    arbitrary = B.pack <$> arbitrary
+
 mmsTest:: Spec
 mmsTest = do
     describe "writeFields has predictable size" $ do
@@ -64,19 +73,16 @@ mmsTest = do
             let p = Point 1 3
             L.length (writeMms p) `shouldBe` 16
 
-        it "SomeData is 32 bytes" $ do
-            let sd =  SomeData (AllocatedList []) 33 1.823
-            L.length (writeMms sd) `shouldBe` 32
-
     describe "readFields . toStrict . writeFields = id" $ do
         let
             prop :: (Mms a a, Eq a) => a -> Bool
             prop x = (readMms . L.toStrict . writeMms) x == x
         it "Double" $ quickCheck (prop :: Double -> Bool)
         it "Point" $ quickCheck (prop :: Point -> Bool)
+        it "ByteString" $ quickCheck (prop :: B.ByteString -> Bool)
         it "ManyFields" $ quickCheck (prop :: ManyFields -> Bool)
 
-    describe "Variable-length data has predictable size" $ do
+    describe "Variable-length data has survives writing and reading" $ do
         it "Two-component vector" $ do
             let xs = AllocatedList [1.8, 2.4 :: Double]
             let xs' = readMms . L.toStrict . writeMms $ xs :: List 'Mapped Double
@@ -88,8 +94,14 @@ mmsTest = do
             map toList (toList xs') `shouldBe` map toList (toList xs)
 
         it "SomeData" $ do
-            let sd = SomeData (AllocatedList [Point 1 2, Point 3 4]) 33 1.823
+            let sd = SomeData
+                    { points = AllocatedList [Point 1 2, Point 3 4]
+                    , numberInt = 33
+                    , numberDouble = 1.823
+                    , string = B.pack (map B.c2w "yes this is dog")
+                    }
             let sd' = readMms . L.toStrict . writeMms $ sd :: SomeData 'Mapped
             toList (points sd') `shouldBe` toList (points sd)
-            numberDouble sd' `shouldBe` numberDouble sd
             numberInt sd' `shouldBe` numberInt sd
+            numberDouble sd' `shouldBe` numberDouble sd
+            string sd' `shouldBe` string sd
