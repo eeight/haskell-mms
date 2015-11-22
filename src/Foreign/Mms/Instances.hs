@@ -17,6 +17,14 @@ import System.IO.Unsafe(unsafePerformIO)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 
+instance Mms Bool Bool where
+    writeData _ = return ()
+    writeFields = putStorable
+
+    mmsSize = sizeOf
+    mmsAlignment = alignment
+    readFields = getStorable
+
 instance Mms Int Int where
     writeData _ = return ()
     writeFields = putStorable
