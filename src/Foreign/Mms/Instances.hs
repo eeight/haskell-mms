@@ -131,6 +131,8 @@ instance (GMms fa fm, GMms ga gm) => GMms (fa :*: ga) (fm :*: gm) where
     gfields ~(x :*: y) = gfields x ++ gfields y
     greadFields = liftM2 (:*:) greadFields greadFields
 
+instance (Mms a1 m1, Mms a2 m2) => Mms (a1, a2) (m1, m2)
+
 instance Storage (Ptr a) where
     readMms = unsafePerformIO . evalStateT (runGet readFields) . castPtr
 

@@ -14,11 +14,11 @@ import GHC.Int(Int64, Int8)
 import GHC.Generics(Generic)
 import Data.Foldable(Foldable(..))
 
-import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
-
-import Debug.Trace
+import qualified Data.ByteString.Lazy as L
+import qualified Data.Map as M
+import qualified Foreign.Mms.Map as MM
 
 data Point = Point Double Double deriving (Eq, Show, Generic)
 
@@ -32,6 +32,8 @@ data SomeData (m :: Mode) = SomeData
     , numberInt :: Int8
     , numberDouble :: Double
     , string :: B.ByteString
+    , pair :: (Int8, Point)
+    , mapmap :: MM.Map m Int8 Double
     } deriving (Show, Generic)
 
 instance Mms (SomeData 'Allocated) (SomeData 'Mapped)
@@ -94,14 +96,19 @@ mmsTest = do
             map toList (toList xs') `shouldBe` map toList (toList xs)
 
         it "SomeData" $ do
+            let mapItems = [(1, 10.1), (2, 10.2)]
             let sd = SomeData
                     { points = AllocatedList [Point 1 2, Point 3 4]
                     , numberInt = 33
                     , numberDouble = 1.823
                     , string = B.pack (map B.c2w "yes this is dog")
+                    , pair = (8, Point 5 6)
+                    , mapmap = MM.AllocatedMap (M.fromList mapItems)
                     }
             let sd' = readMms . L.toStrict . writeMms $ sd :: SomeData 'Mapped
             toList (points sd') `shouldBe` toList (points sd)
             numberInt sd' `shouldBe` numberInt sd
             numberDouble sd' `shouldBe` numberDouble sd
             string sd' `shouldBe` string sd
+            pair sd' `shouldBe` pair sd
+            MM.toList (mapmap sd') `shouldBe` mapItems
